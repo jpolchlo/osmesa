@@ -3,6 +3,7 @@ package osmesa.common.model
 import geotrellis.raster.{IntArrayTile, Tile, isData, Raster => GTRaster}
 import geotrellis.vector.Extent
 import osmesa.common.raster.{MutableSparseIntTile, SparseIntTile}
+import com.vividsolutions.jts.{geom => jts}
 
 package object impl {
   case class CoordinatesWithKey(key: String, lat: Option[BigDecimal], lon: Option[BigDecimal])
@@ -28,7 +29,7 @@ package object impl {
       with Key
       with Sequence
 
-  case class GeometryTileWithKey(key: String, zoom: Int, x: Int, y: Int, wkb: Array[Byte])
+  case class GeometryTileWithKey(key: String, zoom: Int, x: Int, y: Int, geom: jts.Geometry)
       extends GeometryTile
       with Key
 
@@ -37,7 +38,7 @@ package object impl {
                                             zoom: Int,
                                             x: Int,
                                             y: Int,
-                                            wkb: Array[Byte])
+                                            geom: jts.Geometry)
       extends GeometryTile
       with Key
       with Sequence

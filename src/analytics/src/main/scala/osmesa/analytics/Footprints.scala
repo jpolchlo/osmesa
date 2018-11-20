@@ -11,7 +11,6 @@ import geotrellis.raster.{RasterExtent, Raster => GTRaster, _}
 import geotrellis.spark.io.index.zcurve.ZSpatialKeyIndex
 import geotrellis.spark.tiling.ZoomedLayoutScheme
 import geotrellis.spark.{KeyBounds, SpatialKey}
-import geotrellis.vector.io._
 import geotrellis.vector.{Extent, Feature, Point, PointFeature, Geometry => GTGeometry}
 import geotrellis.vectortile.{Layer, VInt64, Value, VectorTile}
 import org.apache.commons.io.IOUtils
@@ -374,7 +373,7 @@ object Footprints extends Logging {
           .flatMap { point =>
             val geom = point.geom
 
-            Option(geom).map(_.reproject(LatLng, WebMercator)) match {
+            Option(geom).map(GTGeometry(_)).map(_.reproject(LatLng, WebMercator)) match {
               case Some(g) if g.isValid =>
                 layout.mapTransform
                   .keysForGeometry(g)
@@ -386,7 +385,7 @@ object Footprints extends Logging {
                                               baseZoom,
                                               sk.col,
                                               sk.row,
-                                              clipped.toWKB(3857)))
+                                              clipped.jtsGeom))
                       case _ =>
                         Seq.empty[GeometryTileWithKey]
                     }
@@ -407,7 +406,7 @@ object Footprints extends Logging {
           .flatMap { point =>
             val geom = point.geom
 
-            Option(geom).map(_.reproject(LatLng, WebMercator)) match {
+            Option(geom).map(GTGeometry(_)).map(_.reproject(LatLng, WebMercator)) match {
               case Some(g) if g.isValid =>
                 layout.mapTransform
                   .keysForGeometry(g)
@@ -420,7 +419,7 @@ object Footprints extends Logging {
                                                          baseZoom,
                                                          sk.col,
                                                          sk.row,
-                                                         clipped.toWKB(3857)))
+                                                         clipped.jtsGeom))
                       case _ => Seq.empty[GeometryTileWithKeyAndSequence]
                     }
                   }
@@ -616,10 +615,10 @@ object Footprints extends Logging {
               val tileExtent = sk.extent(LayoutScheme.levelForZoom(z).layout)
               val tile = MutableSparseIntTile(cols, rows)
               val rasterExtent = RasterExtent(tileExtent, tile.cols, tile.rows)
-              val geoms = tiles.map(_.wkb.readWKB)
+              val geoms = tiles.map(_.geom)
 
               geoms.foreach(g =>
-                g.foreach(rasterExtent) { (c, r) =>
+                GTGeometry(g).foreach(rasterExtent) { (c, r) =>
                   tile.get(c, r) match {
                     case v if isData(v) => tile.set(c, r, v + 1)
                     case _              => tile.set(c, r, 1)
@@ -645,10 +644,10 @@ object Footprints extends Logging {
               val tileExtent = sk.extent(LayoutScheme.levelForZoom(z).layout)
               val tile = MutableSparseIntTile(cols, rows)
               val rasterExtent = RasterExtent(tileExtent, tile.cols, tile.rows)
-              val geoms = tiles.map(_.wkb.readWKB)
+              val geoms = tiles.map(_.geom)
 
               geoms.foreach(g =>
-                g.foreach(rasterExtent) { (c, r) =>
+                GTGeometry(g).foreach(rasterExtent) { (c, r) =>
                   tile.get(c, r) match {
                     case v if isData(v) => tile.set(c, r, v + 1)
                     case _              => tile.set(c, r, 1)

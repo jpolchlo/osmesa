@@ -4,9 +4,10 @@ import java.net.URI
 import java.time.Instant
 
 import cats.syntax.either._
+import com.vividsolutions.jts.geom.Coordinate
+import com.vividsolutions.jts.{geom => jts}
 import geotrellis.raster.{Tile, Raster => GTRaster}
-import geotrellis.vector.io._
-import geotrellis.vector.{Feature, Point, Geometry => GTGeometry}
+import geotrellis.vector.{Feature, GeomFactory, Geometry => GTGeometry}
 import io.circe._
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types._
@@ -131,13 +132,7 @@ package object model {
   }
 
   trait Geometry {
-    def geom: GTGeometry
-  }
-
-  trait SerializedGeometry extends Geometry {
-    lazy val geom: GTGeometry = wkb.readWKB
-
-    def wkb: Array[Byte]
+    def geom: jts.Geometry
   }
 
   trait TileCoordinates {
@@ -146,7 +141,7 @@ package object model {
     def y: Int
   }
 
-  trait GeometryTile extends SerializedGeometry with TileCoordinates
+  trait GeometryTile extends Geometry with TileCoordinates
 
   trait Raster {
     def raster: GTRaster[Tile]
@@ -158,10 +153,10 @@ package object model {
     def lat: Option[BigDecimal]
     def lon: Option[BigDecimal]
 
-    def geom: Point = Point(x, y)
+    def geom: jts.Point = GeomFactory.factory.createPoint(new Coordinate(x, y))
 
-    def x: Float = lon.map(_.floatValue).getOrElse(Float.NaN)
-    def y: Float = lat.map(_.floatValue).getOrElse(Float.NaN)
+    def x: Double = lon.map(_.doubleValue).getOrElse(Double.NaN)
+    def y: Double = lat.map(_.doubleValue).getOrElse(Double.NaN)
   }
 
   trait Key {

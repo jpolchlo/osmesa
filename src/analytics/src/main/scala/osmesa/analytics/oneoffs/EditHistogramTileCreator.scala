@@ -50,11 +50,21 @@ object EditHistogramTileCreator
 
             val history = spark.read.orc(historyURI.toString)
 
+            val baseinstant = java.time.Instant.parse("2004-08-09T00:00:00.00Z")
+            val smoosh = org.apache.spark.sql.functions.udf { ts: java.sql.Timestamp =>
+              val day = (ts.toInstant.getEpochSecond - baseinstant.getEpochSecond) / 86400
+              val clumpingFactor = math.max(math.floor(60 * math.exp(-day / 3000.0)), 7)
+              val binned = (math.floor(day / clumpingFactor) * clumpingFactor).toLong
+              val seconds = (binned * 86400 + baseinstant.getEpochSecond).toLong
+              java.sql.Timestamp.from(java.time.Instant.ofEpochSecond(seconds))
+            }
+
             val nodes = history
               .where('type === "node" and 'lat.isNotNull and 'lon.isNotNull)
+              .withColumn("timestamp", smoosh('timestamp))
               .withColumn("lat", asDouble('lat))
               .withColumn("lon", asDouble('lon))
-              .where('uid > 1)
+              //.where('uid > 1) // commenting out since Geofabrik excerpts have no uid field
               .select(st_makePoint('lon, 'lat) as 'geom,
                       year('timestamp) * 1000 + dayofyear('timestamp) as 'key)
 

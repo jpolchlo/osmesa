@@ -1,2 +1,3 @@
+config-*.mk
 cluster-id.txt
 last-step-id.txt

@@ -67,6 +67,28 @@ upload-ingest: ${INGEST_ASSEMBLY}
 upload-analytics: ${ANALYTICS_ASSEMBLY}
 	@aws s3 cp ${ANALYTICS_ASSEMBLY} ${S3_URI}/
 
+update-changeset-orc:
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Changeset ORC Update",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn,--deploy-mode,cluster,\
+--class,osmesa.analytics.oneoffs.MergeChangesets,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.driver.maxResultSize=3g,\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.shuffle.io.numConnectionsPerPeer=4,\
+--conf,spark.shuffle.io.connectionTimeout=18000s,\
+--conf,spark.shuffle.service.enabled=true,\
+${S3_URI}/${ANALYTICS_JAR},\
+--changesets=${CHANGESET_URI},\
+${CHANGESET_ORC_SOURCE},\
+${CHANGESET_ORC_DEST}\
+] | cut -f2 | tee last-step-id.txt
+
 planet-ingest:
 	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
 --steps Type=CUSTOM_JAR,Name="Planet ingest - zoom ${ZOOM}",Jar=command-runner.jar,Args=[\

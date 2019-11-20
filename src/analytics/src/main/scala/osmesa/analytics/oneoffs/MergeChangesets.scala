@@ -83,7 +83,8 @@ object MergeChangesets
         import spark.implicits._
 
         val df = spark.read.orc(orcUri.toString)
-        val lastModified = df.select(max(coalesce('closed_at, 'created_at))).first.getAs[Timestamp](0)
+
+        val lastModified = df.select(max(coalesce('closedAt, 'createdAt))).first.getAs[Timestamp](0)
 
         val startSequence = findSequenceFor(lastModified.toInstant, changesetSource)
         val endSequence = endTime.map(findSequenceFor(_, changesetSource)).getOrElse(getCurrentSequence(changesetSource).get.sequence)
@@ -100,21 +101,7 @@ object MergeChangesets
         // column names into camel case (see https://github.com/geotrellis/vectorpipe/issues/113)
         changesets
           .drop("comments", "sequence")
-          .union(df.select(
-            'id,
-            'tags,
-            'created_at as 'createdAt,
-            'open,
-            'closed_at as 'closedAt,
-            'comments_count as 'commentsCount,
-            'min_lat as 'minLat,
-            'max_lat as 'maxLat,
-            'min_lon as 'minLon,
-            'max_lon as 'maxLon,
-            'num_changes as 'numChanges,
-            'uid,
-            'user)
-          )
+          .union(df)
           .repartition(1)
           .write
           .orc(outputURI.toString)

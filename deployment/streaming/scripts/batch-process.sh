@@ -43,14 +43,12 @@ aws emr create-cluster \
 	        \"Name\":\"Workers\"
 	      }
 	    ]" \
-    --scale-down-behavior TERMINATE_AT_TASK_COMPLETION \
-    --auto-terminate \
     --region us-east-1 \
     --steps "[
 	      {
 	        \"Args\": $ARGS,
 	        \"Type\": \"CUSTOM_JAR\",
-	        \"ActionOnFailure\": \"TERMINATE_CLUSTER\",
+	        \"ActionOnFailure\": \"CONTINUE\",
 	        \"Jar\": \"command-runner.jar\",
 	        \"Properties\": \"\",
 	        \"Name\": \"$STEP_NAME\"
